@@ -17,8 +17,8 @@
 
         var player;
         function onYouTubeIframeAPIReady() {
-            // Decodes the song name from the URL hash (#)
-            var query = decodeURIComponent(window.location.hash.substring(1));
+            // This gets the song name OR ID from the URL hash (#)
+            var input = decodeURIComponent(window.location.hash.substring(1));
             
             player = new YT.Player('player', {
                 height: '100%',
@@ -32,16 +32,16 @@
                 },
                 events: {
                     'onReady': function(event) {
-                        // CUE instead of LOAD provides a more stable handshake
-                        event.target.cuePlaylist({
+                        // TRY SEARCH FIRST, BUT WITH A CLEANER HANDSHAKE
+                        event.target.loadPlaylist({
                             listType: 'search',
-                            list: query
+                            list: input
                         });
                     },
-                    'onStateChange': function(event) {
-                        // Once the search results are ready (CUED), hit PLAY automatically
-                        if (event.data == YT.PlayerState.CUED) {
-                            event.target.playVideo();
+                    'onError': function(e) {
+                        // If search fails (Error 153/Playback ID), try to load as direct ID
+                        if (input.length <= 12) {
+                             event.target.loadVideoById(input);
                         }
                     }
                 }
