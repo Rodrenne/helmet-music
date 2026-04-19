@@ -12,42 +12,54 @@
     <script>
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        document.head.appendChild(tag);
 
         var player;
         function onYouTubeIframeAPIReady() {
-            // We get the Video ID from the # link
-            var vidId = window.location.hash.substring(1) || 'dQw4w9WgXcQ';
-
+            var input = decodeURIComponent(window.location.hash.substring(1));
+            
             player = new YT.Player('player', {
-                height: '100%',
-                width: '100%',
-                videoId: vidId,
-                playerVars: {
-                    'autoplay': 1,
-                    'mute': 1, // Start muted to bypass the "No Click" block
-                    'controls': 0,
-                    'origin': window.location.origin
+                height: '100%', width: '100%',
+                playerVars: { 
+                    'autoplay': 1, 
+                    'controls': 1, 
+                    'mute': 1, // Stay muted to keep the "Autoplay" permission active
+                    'origin': 'https://rodrenne.github.io' 
                 },
                 events: {
-                    'onReady': onPlayerReady,
+                    'onReady': function(event) {
+                        event.target.loadPlaylist({
+                            listType: 'search',
+                            list: input
+                        });
+                    },
                     'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        function onPlayerReady(event) {
-            event.target.playVideo();
-        }
-
         function onPlayerStateChange(event) {
-            // Once the video starts playing, we unmute it
+            // State 1 = Playing. 
+            // We trigger unMute and Play every time the state changes to "Playing"
+            // This handles the transition from Ad -> Video automatically.
             if (event.data == YT.PlayerState.PLAYING) {
                 event.target.unMute();
                 event.target.setVolume(100);
             }
+            
+            // If the video pauses itself (common after an ad), force it back to play
+            if (event.data == YT.PlayerState.PAUSED) {
+                event.target.playVideo();
+                event.target.unMute();
+            }
         }
+
+        window.onhashchange = function() {
+            var newInput = decodeURIComponent(window.location.hash.substring(1));
+            if (player && newInput) {
+                player.loadPlaylist({ listType: 'search', list: newInput });
+            }
+        };
     </script>
 </body>
 </html>
