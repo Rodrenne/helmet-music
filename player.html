@@ -12,51 +12,42 @@
     <script>
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         var player;
         function onYouTubeIframeAPIReady() {
-            var input = decodeURIComponent(window.location.hash.substring(1));
-            
+            // We get the Video ID from the # link
+            var vidId = window.location.hash.substring(1) || 'dQw4w9WgXcQ';
+
             player = new YT.Player('player', {
-                height: '100%', 
+                height: '100%',
                 width: '100%',
-                // We don't set videoId here to keep the player flexible
-                playerVars: { 
-                    'autoplay': 1, 
-                    'controls': 1, 
-                    'mute': 1, // MANDATORY: This tricks the browser into allowing autoplay
-                    'origin': 'https://rodrenne.github.io',
-                    'enablejsapi': 1
+                videoId: vidId,
+                playerVars: {
+                    'autoplay': 1,
+                    'mute': 1, // Start muted to bypass the "No Click" block
+                    'controls': 0,
+                    'origin': window.location.origin
                 },
                 events: {
-                    'onReady': function(event) {
-                        // Search for the song
-                        event.target.loadPlaylist({
-                            listType: 'search',
-                            list: input
-                        });
-                    },
-                    'onStateChange': function(event) {
-                        // THE MAGIC BIT: As soon as the video starts (State 1 = Playing)
-                        if (event.data == YT.PlayerState.PLAYING) {
-                            event.target.unMute(); // Now that it's already moving, we can turn sound on
-                            event.target.setVolume(100);
-                        }
-                    }
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange
                 }
             });
         }
 
-        window.onhashchange = function() {
-            var newInput = decodeURIComponent(window.location.hash.substring(1));
-            if (player && newInput) {
-                player.loadPlaylist({
-                    listType: 'search',
-                    list: newInput
-                });
+        function onPlayerReady(event) {
+            event.target.playVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            // Once the video starts playing, we unmute it
+            if (event.data == YT.PlayerState.PLAYING) {
+                event.target.unMute();
+                event.target.setVolume(100);
             }
-        };
+        }
     </script>
 </body>
 </html>
