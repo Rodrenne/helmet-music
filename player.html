@@ -12,53 +12,66 @@
     <script>
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
-        var firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        document.head.appendChild(tag);
 
         var player;
-        function onYouTubeIframeAPIReady() {
-            // Get the Video ID or Search Query from the URL hash (#)
-            var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
+        var checkInterval;
 
+        function onYouTubeIframeAPIReady() {
+            var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
+            
             player = new YT.Player('player', {
                 height: '100%',
                 width: '100%',
                 playerVars: {
                     'autoplay': 1,
-                    'mute': 1,      // Essential to bypass the initial click requirement
+                    'mute': 1, 
                     'controls': 1,
-                    'origin': window.location.origin,
-                    'enablejsapi': 1
+                    'origin': window.location.origin
                 },
                 events: {
                     'onReady': function(event) {
-                        // Use loadPlaylist for search or loadVideoById for direct IDs
+                        // Load based on input length (Search vs ID)
                         if (input.length > 12) {
                             event.target.loadPlaylist({ listType: 'search', list: input });
                         } else {
                             event.target.loadVideoById(input);
                         }
+                        startPatrol();
                     },
                     'onStateChange': onPlayerStateChange
                 }
             });
         }
 
+        // The Patrol: This runs every 0.5 seconds to force playback and sound
+        function startPatrol() {
+            if (checkInterval) clearInterval(checkInterval);
+            checkInterval = setInterval(function() {
+                if (player && player.getPlayerState) {
+                    var state = player.getPlayerState();
+                    
+                    // 2 = Paused, 5 = Cued, 0 = Ended. Force them all to PLAY.
+                    if (state === 2 || state === 5 || state === 0) {
+                        player.playVideo();
+                    }
+                    
+                    // If it's playing but muted, force UNMUTE.
+                    if (state === 1 && player.isMuted()) {
+                        player.unMute();
+                        player.setVolume(100);
+                    }
+                }
+            }, 500);
+        }
+
         function onPlayerStateChange(event) {
-            // If the video is playing, force it to unmute
             if (event.data == YT.PlayerState.PLAYING) {
                 event.target.unMute();
                 event.target.setVolume(100);
             }
-
-            // THE FIX: If YouTube pauses after an ad or transition, force it back to PLAY
-            if (event.data == YT.PlayerState.PAUSED) {
-                event.target.playVideo();
-                event.target.unMute();
-            }
         }
 
-        // Allow song changes without page reload
         window.onhashchange = function() {
             var newInput = decodeURIComponent(window.location.hash.substring(1));
             if (player && newInput) {
