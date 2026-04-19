@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="referrer" content="no-referrer-when-downgrade">
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
+        #player { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+    <div id="player"></div>
+    <script>
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        var player;
+        function onYouTubeIframeAPIReady() {
+            // This pulls the song name from the # in your blocks
+            var query = decodeURIComponent(window.location.hash.substring(1));
+            
+            player = new YT.Player('player', {
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    'autoplay': 1,
+                    'controls': 1,
+                    'mute': 0,
+                    'origin': window.location.origin // Tells YouTube this is a safe local request
+                },
+                events: {
+                    'onReady': function(event) {
+                        // This searches for the song and plays the first result automatically
+                        event.target.loadPlaylist({
+                            listType: 'search',
+                            list: query
+                        });
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
