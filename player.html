@@ -12,26 +12,32 @@
     <script>
         var tag = document.createElement('script');
         tag.src = "https://www.youtube.com/iframe_api";
-        document.head.appendChild(tag);
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
         var player;
         function onYouTubeIframeAPIReady() {
-            var input = decodeURIComponent(window.location.hash.substring(1));
-            
+            // Get the Video ID or Search Query from the URL hash (#)
+            var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
+
             player = new YT.Player('player', {
-                height: '100%', width: '100%',
-                playerVars: { 
-                    'autoplay': 1, 
-                    'controls': 1, 
-                    'mute': 1, // Stay muted to keep the "Autoplay" permission active
-                    'origin': 'https://rodrenne.github.io' 
+                height: '100%',
+                width: '100%',
+                playerVars: {
+                    'autoplay': 1,
+                    'mute': 1,      // Essential to bypass the initial click requirement
+                    'controls': 1,
+                    'origin': window.location.origin,
+                    'enablejsapi': 1
                 },
                 events: {
                     'onReady': function(event) {
-                        event.target.loadPlaylist({
-                            listType: 'search',
-                            list: input
-                        });
+                        // Use loadPlaylist for search or loadVideoById for direct IDs
+                        if (input.length > 12) {
+                            event.target.loadPlaylist({ listType: 'search', list: input });
+                        } else {
+                            event.target.loadVideoById(input);
+                        }
                     },
                     'onStateChange': onPlayerStateChange
                 }
@@ -39,25 +45,28 @@
         }
 
         function onPlayerStateChange(event) {
-            // State 1 = Playing. 
-            // We trigger unMute and Play every time the state changes to "Playing"
-            // This handles the transition from Ad -> Video automatically.
+            // If the video is playing, force it to unmute
             if (event.data == YT.PlayerState.PLAYING) {
                 event.target.unMute();
                 event.target.setVolume(100);
             }
-            
-            // If the video pauses itself (common after an ad), force it back to play
+
+            // THE FIX: If YouTube pauses after an ad or transition, force it back to PLAY
             if (event.data == YT.PlayerState.PAUSED) {
                 event.target.playVideo();
                 event.target.unMute();
             }
         }
 
+        // Allow song changes without page reload
         window.onhashchange = function() {
             var newInput = decodeURIComponent(window.location.hash.substring(1));
             if (player && newInput) {
-                player.loadPlaylist({ listType: 'search', list: newInput });
+                if (newInput.length > 12) {
+                    player.loadPlaylist({ listType: 'search', list: newInput });
+                } else {
+                    player.loadVideoById(newInput);
+                }
             }
         };
     </script>
