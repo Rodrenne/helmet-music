@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="referrer" content="no-referrer-when-downgrade">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
         #player { width: 100%; height: 100%; }
@@ -17,7 +17,7 @@
 
         var player;
         function onYouTubeIframeAPIReady() {
-            // This pulls the song name from the # in your blocks
+            // Decodes the song name from the URL hash (#)
             var query = decodeURIComponent(window.location.hash.substring(1));
             
             player = new YT.Player('player', {
@@ -27,15 +27,22 @@
                     'autoplay': 1,
                     'controls': 1,
                     'mute': 0,
-                    'origin': window.location.origin // Tells YouTube this is a safe local request
+                    'modestbranding': 1,
+                    'origin': 'https://rodrenne.github.io' 
                 },
                 events: {
                     'onReady': function(event) {
-                        // This searches for the song and plays the first result automatically
-                        event.target.loadPlaylist({
+                        // CUE instead of LOAD provides a more stable handshake
+                        event.target.cuePlaylist({
                             listType: 'search',
                             list: query
                         });
+                    },
+                    'onStateChange': function(event) {
+                        // Once the search results are ready (CUED), hit PLAY automatically
+                        if (event.data == YT.PlayerState.CUED) {
+                            event.target.playVideo();
+                        }
                     }
                 }
             });
