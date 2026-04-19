@@ -4,7 +4,7 @@
     <meta name="referrer" content="no-referrer">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
-        #player { width: 100%; height: 100%; pointer-events: none; } /* Prevents accidental clicks */
+        #player { width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -15,7 +15,7 @@
         document.head.appendChild(tag);
 
         var player;
-        var bruteForceLoop;
+        var breachInterval;
 
         function onYouTubeIframeAPIReady() {
             var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
@@ -25,16 +25,16 @@
                 width: '100%',
                 playerVars: {
                     'autoplay': 1,
-                    'mute': 1, // Start muted to satisfy the initial security check
+                    'mute': 1, // MUST start muted for the browser to allow the process
                     'controls': 1,
-                    'origin': window.location.origin,
-                    'enablejsapi': 1
+                    'playsinline': 1,
+                    'enablejsapi': 1,
+                    'origin': window.location.origin
                 },
                 events: {
                     'onReady': function(event) {
                         loadContent(input);
-                        // Start the high-speed "Security Breach" loop
-                        breachSecurity();
+                        startBreachLoop();
                     },
                     'onStateChange': onPlayerStateChange
                 }
@@ -49,39 +49,34 @@
             }
         }
 
-        function breachSecurity() {
-            if (bruteForceLoop) clearInterval(bruteForceLoop);
+        function startBreachLoop() {
+            if (breachInterval) clearInterval(breachInterval);
             
-            // Runs every 250ms to force the browser to accept the audio
-            bruteForceLoop = setInterval(function() {
+            // High-frequency patrol (200ms) to detect and kill pauses
+            breachInterval = setInterval(function() {
                 if (player && player.getPlayerState) {
                     var s = player.getPlayerState();
                     
-                    // Force playback if the browser tries to pause it
+                    // Force PLAY if browser tries to pause (State 2) or ad finishes (State 5)
                     if (s === 2 || s === 5 || s === 0) {
                         player.playVideo();
                     }
-                    
-                    // Attempt to break the mute wall
-                    if (s === 1) { 
-                        player.unMute();
-                        player.setVolume(100);
-                        
-                        // Verify if unmute actually worked. 
-                        // If the browser blocked it, isMuted() will still be true.
-                        if (!player.isMuted()) {
-                            console.log("Security breached: Audio is live.");
-                        }
-                    }
                 }
-            }, 250);
+            }, 200);
         }
 
         function onPlayerStateChange(event) {
-            // If it starts playing, immediately try to unmute
             if (event.data == YT.PlayerState.PLAYING) {
-                event.target.unMute();
-                event.target.setVolume(100);
+                // THE STEALH UNMUTE:
+                // We wait 1500ms after the video starts. 
+                // This bypasses the "Instant Pause" security check on Laptops.
+                setTimeout(function() {
+                    if (player.isMuted()) {
+                        player.unMute();
+                        player.setVolume(100);
+                        console.log("Audio Wall Breached");
+                    }
+                }, 1500);
             }
         }
 
