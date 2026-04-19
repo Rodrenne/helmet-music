@@ -4,7 +4,7 @@
     <meta name="referrer" content="no-referrer">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
-        #player { width: 100%; height: 100%; }
+        #player { width: 100%; height: 100%; pointer-events: none; } /* Prevents accidental clicks */
     </style>
 </head>
 <body>
@@ -15,7 +15,7 @@
         document.head.appendChild(tag);
 
         var player;
-        var patrolTick;
+        var bruteForceLoop;
 
         function onYouTubeIframeAPIReady() {
             var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
@@ -25,15 +25,16 @@
                 width: '100%',
                 playerVars: {
                     'autoplay': 1,
-                    'mute': 1, 
+                    'mute': 1, // Start muted to satisfy the initial security check
                     'controls': 1,
-                    'playsinline': 1,
-                    'origin': window.location.origin
+                    'origin': window.location.origin,
+                    'enablejsapi': 1
                 },
                 events: {
                     'onReady': function(event) {
                         loadContent(input);
-                        startPatrol();
+                        // Start the high-speed "Security Breach" loop
+                        breachSecurity();
                     },
                     'onStateChange': onPlayerStateChange
                 }
@@ -48,33 +49,39 @@
             }
         }
 
-        function startPatrol() {
-            if (patrolTick) clearInterval(patrolTick);
-            patrolTick = setInterval(function() {
+        function breachSecurity() {
+            if (bruteForceLoop) clearInterval(bruteForceLoop);
+            
+            // Runs every 250ms to force the browser to accept the audio
+            bruteForceLoop = setInterval(function() {
                 if (player && player.getPlayerState) {
-                    var state = player.getPlayerState();
+                    var s = player.getPlayerState();
                     
-                    // If paused, ended, or cued—FORCE PLAY
-                    if (state === 2 || state === 0 || state === 5) {
+                    // Force playback if the browser tries to pause it
+                    if (s === 2 || s === 5 || s === 0) {
                         player.playVideo();
                     }
                     
-                    // If playing but still muted, attempt to unmute
-                    if (state === 1 && player.isMuted()) {
+                    // Attempt to break the mute wall
+                    if (s === 1) { 
                         player.unMute();
                         player.setVolume(100);
+                        
+                        // Verify if unmute actually worked. 
+                        // If the browser blocked it, isMuted() will still be true.
+                        if (!player.isMuted()) {
+                            console.log("Security breached: Audio is live.");
+                        }
                     }
                 }
-            }, 800); // 800ms is the "Sweet Spot" to bypass browser security
+            }, 250);
         }
 
         function onPlayerStateChange(event) {
+            // If it starts playing, immediately try to unmute
             if (event.data == YT.PlayerState.PLAYING) {
-                // Delayed unmute helps bypass the "Instant Pause" security trigger
-                setTimeout(function() {
-                    event.target.unMute();
-                    event.target.setVolume(100);
-                }, 500);
+                event.target.unMute();
+                event.target.setVolume(100);
             }
         }
 
