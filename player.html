@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="referrer" content="strict-origin-when-cross-origin">
+    <meta name="referrer" content="no-referrer">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
         #player { width: 100%; height: 100%; }
@@ -16,32 +16,45 @@
 
         var player;
         function onYouTubeIframeAPIReady() {
-            // Get the ID after the # (e.g., player.html#jAgq_32t_Hk)
-            var videoId = window.location.hash.substring(1);
+            var input = decodeURIComponent(window.location.hash.substring(1));
             
             player = new YT.Player('player', {
-                height: '100%',
+                height: '100%', 
                 width: '100%',
-                videoId: videoId, // Direct ID loading
-                playerVars: {
-                    'autoplay': 1,
-                    'controls': 1,
-                    'mute': 0,
-                    'origin': 'https://rodrenne.github.io'
+                // We don't set videoId here to keep the player flexible
+                playerVars: { 
+                    'autoplay': 1, 
+                    'controls': 1, 
+                    'mute': 1, // MANDATORY: This tricks the browser into allowing autoplay
+                    'origin': 'https://rodrenne.github.io',
+                    'enablejsapi': 1
                 },
                 events: {
                     'onReady': function(event) {
-                        event.target.playVideo();
+                        // Search for the song
+                        event.target.loadPlaylist({
+                            listType: 'search',
+                            list: input
+                        });
+                    },
+                    'onStateChange': function(event) {
+                        // THE MAGIC BIT: As soon as the video starts (State 1 = Playing)
+                        if (event.data == YT.PlayerState.PLAYING) {
+                            event.target.unMute(); // Now that it's already moving, we can turn sound on
+                            event.target.setVolume(100);
+                        }
                     }
                 }
             });
         }
 
-        // Allows the app to change songs without reloading the whole page
         window.onhashchange = function() {
-            var newId = window.location.hash.substring(1);
-            if (player && newId) {
-                player.loadVideoById(newId);
+            var newInput = decodeURIComponent(window.location.hash.substring(1));
+            if (player && newInput) {
+                player.loadPlaylist({
+                    listType: 'search',
+                    list: newInput
+                });
             }
         };
     </script>
