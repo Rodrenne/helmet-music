@@ -4,7 +4,7 @@
     <meta name="referrer" content="no-referrer">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: black; overflow: hidden; }
-        #player { width: 100%; height: 100%; }
+        #player { width: 100%; height: 100%; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -15,7 +15,7 @@
         document.head.appendChild(tag);
 
         var player;
-        var breachInterval;
+        var bruteForceLoop;
 
         function onYouTubeIframeAPIReady() {
             var input = decodeURIComponent(window.location.hash.substring(1)) || 'dQw4w9WgXcQ';
@@ -25,16 +25,16 @@
                 width: '100%',
                 playerVars: {
                     'autoplay': 1,
-                    'mute': 1, // MUST start muted for the browser to allow the process
+                    'mute': 1, 
                     'controls': 1,
-                    'playsinline': 1,
                     'enablejsapi': 1,
+                    'playsinline': 1,
                     'origin': window.location.origin
                 },
                 events: {
                     'onReady': function(event) {
                         loadContent(input);
-                        startBreachLoop();
+                        startPolicyBreach();
                     },
                     'onStateChange': onPlayerStateChange
                 }
@@ -49,34 +49,36 @@
             }
         }
 
-        function startBreachLoop() {
-            if (breachInterval) clearInterval(breachInterval);
+        function startPolicyBreach() {
+            if (bruteForceLoop) clearInterval(bruteForceLoop);
             
-            // High-frequency patrol (200ms) to detect and kill pauses
-            breachInterval = setInterval(function() {
+            // High-speed "Hammer" (150ms)
+            // This constantly fights the browser's attempt to pause the video
+            bruteForceLoop = setInterval(function() {
                 if (player && player.getPlayerState) {
                     var s = player.getPlayerState();
                     
-                    // Force PLAY if browser tries to pause (State 2) or ad finishes (State 5)
-                    if (s === 2 || s === 5 || s === 0) {
+                    // Force PLAY if browser tries to pause or ad is buffering
+                    if (s === 2 || s === 5 || s === -1 || s === 0) {
                         player.playVideo();
                     }
+                    
+                    // The Breach: If playing, keep trying to unmute and set volume
+                    if (s === 1) {
+                        player.unMute();
+                        player.setVolume(100);
+                    }
                 }
-            }, 200);
+            }, 150); 
         }
 
         function onPlayerStateChange(event) {
-            if (event.data == YT.PlayerState.PLAYING) {
-                // THE STEALH UNMUTE:
-                // We wait 1500ms after the video starts. 
-                // This bypasses the "Instant Pause" security check on Laptops.
-                setTimeout(function() {
-                    if (player.isMuted()) {
-                        player.unMute();
-                        player.setVolume(100);
-                        console.log("Audio Wall Breached");
-                    }
-                }, 1500);
+            // Every time the video changes (Ad ends, Song starts), re-trigger play
+            if (event.data !== YT.PlayerState.PLAYING) {
+                event.target.playVideo();
+            } else {
+                event.target.unMute();
+                event.target.setVolume(100);
             }
         }
 
